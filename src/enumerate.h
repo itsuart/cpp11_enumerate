@@ -6,23 +6,25 @@
 
 namespace helpers {
 
-    namespace counted_range_impl {
+    namespace enumerate_impl {
 
         template<typename TValue>
-        struct CountedValue final {
-            CountedValue(std::size_t count, TValue& value)
+        struct EnumeratedValue final {
+            EnumeratedValue(std::size_t count, TValue& value)
                 : count(count), value(value)
             {}
 
-            constexpr CountedValue() : count(), value(*(TValue*)nullptr) {}
+            constexpr EnumeratedValue() : count(), value(*(TValue*)nullptr) {}
 
-            CountedValue(const CountedValue&) = default;
+            ~EnumeratedValue() = default;
+
+            EnumeratedValue(const EnumeratedValue&) = default;
             //no copy-assigning
-            CountedValue& operator=(const CountedValue&) = delete;
+            EnumeratedValue& operator=(const EnumeratedValue&) = delete;
 
             //no moving
-            CountedValue(CountedValue&&) = delete;
-            CountedValue& operator=(CountedValue&&) = delete;
+            EnumeratedValue(EnumeratedValue&&) = delete;
+            EnumeratedValue& operator=(EnumeratedValue&&) = delete;
 
             // A number(count) assigned to the value in the traversed range.
             std::size_t count;
@@ -63,19 +65,19 @@ namespace helpers {
 
 
         template<typename ContainerIterator>
-        class CountedIterator final {
+        class EnumeratingIterator final {
             using UnifiedIterator = UnifiedIt<ContainerIterator>;
             using T = typename std::remove_reference<typename UnifiedIterator::reference>::type;
-            using InstantiatedCountedValue = CountedValue<T>;
+            using InstantiatedEnumeratedValue = EnumeratedValue<T>;
 
         public:
             using iterator_category = std::forward_iterator_tag;
-            using value_type = InstantiatedCountedValue;
+            using value_type = InstantiatedEnumeratedValue;
             using difference_type = typename UnifiedIterator::difference_type;
-            using pointer = InstantiatedCountedValue*;
-            using reference = InstantiatedCountedValue&;
+            using pointer = InstantiatedEnumeratedValue*;
+            using reference = InstantiatedEnumeratedValue&;
 
-            explicit CountedIterator(ContainerIterator it, std::size_t countStart, std::ptrdiff_t step)
+            explicit EnumeratingIterator(ContainerIterator it, std::size_t countStart, std::ptrdiff_t step)
                 : _count(countStart)
                 , _step(step)
                 , _it(static_cast<ContainerIterator&&>(it))
@@ -83,7 +85,8 @@ namespace helpers {
 
             reference operator*() {
                 T& newItem = *_it;
-                new (&_item) InstantiatedCountedValue(_count, newItem);
+                _item.~EnumeratedValue();
+                new (&_item) InstantiatedEnumeratedValue(_count, newItem);
                 return _item;
             }
 
@@ -96,7 +99,7 @@ namespace helpers {
                 _count += _step;
             }
 
-            bool operator!=(const CountedIterator& other) const {
+            bool operator!=(const EnumeratingIterator& other) const {
                 return _it != other._it;
             }
 
@@ -104,16 +107,16 @@ namespace helpers {
             std::size_t _count;
             std::ptrdiff_t _step;
             ContainerIterator _it;
-            InstantiatedCountedValue _item;
+            InstantiatedEnumeratedValue _item;
         };
 
 
         template<typename ContainerIterator>
-        class CountedRange final {
+        class EnumeratingRange final {
         public:
-            using iterator = CountedIterator<ContainerIterator>;
+            using iterator = EnumeratingIterator<ContainerIterator>;
 
-            CountedRange(
+            EnumeratingRange(
                 ContainerIterator begin,
                 ContainerIterator end,
                 std::size_t countStart,
@@ -138,11 +141,11 @@ namespace helpers {
 
 
         template<typename Container>
-        class OwningCountedRange final {
+        class OwningEnumeratingRange final {
         public:
-            using iterator = CountedIterator<typename Container::const_iterator>;
+            using iterator = EnumeratingIterator<typename Container::const_iterator>;
 
-            OwningCountedRange(Container&& data, std::size_t countStart, std::ptrdiff_t step)
+            OwningEnumeratingRange(Container&& data, std::size_t countStart, std::ptrdiff_t step)
                 : _data(static_cast<Container&&>(data))
                 , _begin( iterator(_data.begin(), countStart, step) )
                 , _end(   iterator(_data.end(),   countStart, step) )
@@ -200,11 +203,11 @@ namespace helpers {
     */
     template<
         typename Container,
-        typename Ret = counted_range_impl::CountedRange<
-            typename counted_range_impl::UnifiedContainerIterationInfo<Container>::iterator
+        typename Ret = enumerate_impl::EnumeratingRange<
+            typename enumerate_impl::UnifiedContainerIterationInfo<Container>::iterator
         >
     >
-    Ret counted_range(Container& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
+    Ret enumerate(Container& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
         return Ret(std::begin(c), std::end(c), countStart, step);
     }
 
@@ -213,9 +216,9 @@ namespace helpers {
     */
     template<
         typename Iterator,
-        typename Ret = counted_range_impl::CountedRange<Iterator>
+        typename Ret = enumerate_impl::EnumeratingRange<Iterator>
     >
-    Ret counted_range(Iterator begin, Iterator end, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
+    Ret enumerate(Iterator begin, Iterator end, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
         return Ret(static_cast<Iterator&&>(begin), static_cast<Iterator&&>(end), countStart, step);
     }
 
@@ -225,9 +228,9 @@ namespace helpers {
     */
     template<
         typename Container,
-        typename Ret = counted_range_impl::OwningCountedRange<Container>
+        typename Ret = enumerate_impl::OwningEnumeratingRange<Container>
     >
-    Ret counted_range(Container&& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
+    Ret enumerate(Container&& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
         return Ret(static_cast<Container&&>(c), countStart, step);
     }
 
@@ -235,8 +238,8 @@ namespace helpers {
         Returns iterable object that provides ref to original element and count.
         Object owns the data pointed by initializer_list.
     */
-    template<typename T, typename Ret = counted_range_impl::OwningCountedRange<std::basic_string<T>>>
-    Ret counted_range(std::initializer_list<T>&& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
+    template<typename T, typename Ret = enumerate_impl::OwningEnumeratingRange<std::basic_string<T>>>
+    Ret enumerate(std::initializer_list<T>&& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
         return Ret( std::basic_string<T> ( static_cast<std::initializer_list<T>&&>(c) ), countStart, step);
     }
 
