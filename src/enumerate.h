@@ -14,6 +14,9 @@ namespace helpers {
                 : count(count), value(value)
             {}
 
+            // We need default ctor because we need an empty container for the real value and count pair.
+            // We need such container, so that `EnumeratingIterator::operator*` could return a proper reference
+            // to the EnumeratedValue object.
             constexpr EnumeratedValue() : count(), value(*(TValue*)nullptr) {}
 
             ~EnumeratedValue() = default;

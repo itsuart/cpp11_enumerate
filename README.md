@@ -1,12 +1,12 @@
-# counted_range
-C++11 single header library that adds support for counting items in a for-range loop.
+# enumerate
+C++11 single header library that adds support for enumerating items in a for-range loop.
 
 ## Examples
 
-#### Counting vector's contents from 0 with step = 1 (default)
+#### Enumerating vector's contents from 0 with step = 1 (default)
 ```cpp
 std::vector<int> items{ 11, 22, 33, 44 };
-for (auto& i : helpers::counted_range(items)) {
+for (auto& i : helpers::enumerate(items)) {
     std::cout << i.count << ": " << i.value << "\n";
 }
 ```
@@ -21,7 +21,7 @@ Output:
 
 #### Iterating backwards and counting down from items.size() with step = -1
 ```cpp
-for (auto& i : helpers::counted_range(items.rbegin(), items.rend(), items.size(), -1)) {
+for (auto& i : helpers::enumerate(items.rbegin(), items.rend(), items.size(), -1)) {
     std::cout << i.count << ": " << i.value << "\n";
 }
 ```
@@ -34,9 +34,9 @@ Output:
 1: 11
 ```
 
-#### Counting contents of std::initializer_list with structural binding (C++17)
+#### Enumerating contents of std::initializer_list with structural binding (C++17)
 ```cpp
-for (auto& [count, value] : helpers::counted_range({ "oh my", "them", "char pointers!" })) {
+for (auto& [count, value] : helpers::enumerate({ "oh my", "them", "char pointers!" })) {
     std::cout << count << ": " << value << "\n";
 }
 ```
@@ -52,7 +52,7 @@ Output:
 All that can be used in a for-range loop.
 
 ## How to use
-* Copy the `counted_range.h` file into your project.
+* Copy the `enumerate.h` file into your project.
 * Optionally rename the default outer namespace (`helpers`) as you see fit.
 * Enjoy!
 
