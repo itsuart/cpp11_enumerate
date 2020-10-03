@@ -241,9 +241,14 @@ namespace helpers {
         Returns iterable object that provides ref to original element and count.
         Object owns the data pointed by initializer_list.
     */
-    template<typename T, typename Ret = enumerate_impl::OwningEnumeratingRange<std::basic_string<T>>>
+    template<
+        typename T,
+        //container for the data in initializer_list, std::basic_string by default
+        typename Container = std::basic_string<T>,
+        typename Ret = enumerate_impl::OwningEnumeratingRange<std::basic_string<T>>
+    >
     Ret enumerate(std::initializer_list<T>&& c, std::size_t countStart = 0, std::ptrdiff_t step = 1) {
-        return Ret( std::basic_string<T> ( static_cast<std::initializer_list<T>&&>(c) ), countStart, step);
+        return Ret( Container ( static_cast<std::initializer_list<T>&&>(c) ), countStart, step);
     }
 
 }
